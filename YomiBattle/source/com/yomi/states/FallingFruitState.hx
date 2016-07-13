@@ -11,7 +11,7 @@ import flixel.util.FlxColor;
 import haxe.macro.Type.MethodKind;
 
 /**
- * ...
+ * MiniJuego para recolectar frutas
  * @author Tarta CEO de TartaCorp
  */
 class FallingFruitState extends FlxState
