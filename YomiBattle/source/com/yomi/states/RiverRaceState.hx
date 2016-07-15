@@ -27,10 +27,12 @@ class RiverRaceState extends FlxState
 	private var leftWall:FlxSprite;
 	private var rightWall:FlxSprite;
 	
-	private static var ACC:Float = 300;
-	private static var MAX_VEL:Float = 1000;
+	private static var MAX_ACC:Float = 80;
+	private static var MAX_VEL:Float = 200;
 	
 	private var accActual:Float;
+	
+	private var background:FlxSpriteGroup;
 	
 	override public function create():Void 
 	{
@@ -39,11 +41,20 @@ class RiverRaceState extends FlxState
 		
 		for (i in 1...4){
 			var stone:FlxSprite = new FlxSprite(0, 0, "assets/images/bocetoTest/StoneSprite.png");
-			stone.scale.set(0.2, 0.2);
+			stone.scale.set(0.4, 0.4);
 			stone.updateHitbox();
 			stone.kill();
 			
 			stones.add(stone);
+		}
+		
+		background = new FlxSpriteGroup();
+		for (i in 0...3){
+			var back:FlxSprite = new FlxSprite(0, 0, "assets/images/bocetoTest/water.png");
+			back.y =-i * back.height;
+			background.add(back);
+			this.add(back);
+			back.velocity.y = 100;
 		}
 		
 		yomi = new FlxSprite(0, 0, "assets/images/bocetoTest/yomiFront.png");
@@ -60,8 +71,8 @@ class RiverRaceState extends FlxState
 		stoneTimer.start(3, addStone, 0);
 		
 		floodTimer = new FlxTimer();
-		floodTimer.start(5, changeFlow, 0);
-		yomi.acceleration.x = -ACC;
+		floodTimer.start(15, changeFlow, 0);
+		
 		
 		leftWall = new FlxSprite();
 		leftWall.makeGraphic(10, FlxG.height, 0xFF00FFFF);
@@ -69,14 +80,16 @@ class RiverRaceState extends FlxState
 		this.add(leftWall);
 		
 		rightWall = new FlxSprite();
-		rightWall.x = FlxG.width - rightWall.width * 0.5;
 		rightWall.makeGraphic(10, FlxG.height, 0xFF00FFFF);
+		rightWall.x = FlxG.width - rightWall.width * 0.5;
 		this.add(rightWall);
 		
-		FlxG.debugger.visible = true;
-		FlxG.debugger.track(yomi.acceleration, "acc");
+		#if !FLX_NO_DEBUG
+			FlxG.debugger.visible = true;
+			FlxG.debugger.track(yomi.acceleration, "acc");
+		#end
 		
-		accActual = ACC;
+		accActual = 10;
 	}
 	
 	
@@ -95,7 +108,11 @@ class RiverRaceState extends FlxState
 	}
 	
 	private function changeFlow(timer:FlxTimer){
+		
 		accActual *=-1;
+		for (back in background){
+			back.flipY = !back.flipY;
+		}
 	}
 	
 	override public function update(elapsed:Float):Void 
@@ -106,13 +123,20 @@ class RiverRaceState extends FlxState
 		FlxG.overlap(yomi, leftWall, stageCollision);
 		FlxG.overlap(yomi, rightWall, stageCollision);
 		
-		if (FlxG.mouse.justPressed){
-			var vel: Float = 300* FlxMath.numericComparison(FlxG.mouse.x, FlxG.width * 0.5);
-			yomi.velocity.x = vel;	
+		var acc:Float = yomi.acceleration.x;
+		acc += accActual;
+		var accMax:Float = MAX_ACC;
+		if (FlxG.mouse.justPressed && yomi.velocity.x==0){
+			yomi.velocity.x = 10* FlxMath.numericComparison(FlxG.mouse.x, FlxG.width * 0.5);
 		}
-		yomi.acceleration.x = accActual;
+		if (FlxG.mouse.pressed){
+			acc+= 20* FlxMath.numericComparison(FlxG.mouse.x, FlxG.width * 0.5);
+			accMax *= 2;
+			
+		}
+		yomi.acceleration.x = FlxMath.bound(acc, accMax *-1, accMax);
 		
-		yomi.velocity.x = FlxMath.bound(yomi.velocity.x, MAX_VEL *-1, MAX_VEL);
+		//yomi.velocity.x = FlxMath.bound(yomi.velocity.x, MAX_VEL *-1, MAX_VEL);
 		
 		stones.forEachAlive(function (stone:FlxSprite){
 			if (stone.y > FlxG.height){
@@ -128,6 +152,12 @@ class RiverRaceState extends FlxState
 			this.add(text);
 		}
 		
+		
+		for (back in background){
+			if (back.y > back.height){
+				back.y = back.height *-(background.members.length-1);
+			}
+		}
 	}
 	
 	private function stageCollision(Object1:FlxObject, Object2:FlxObject):Void
